@@ -6,7 +6,13 @@ import {SimpleUUPSProxy} from "src/minimalUUPS/SimpleUUPSProxy.sol";
 import {ImplV1} from "src/minimalUUPS/ImplV1.sol";
 import {ImplV2} from "src/minimalUUPS/ImplV2.sol";
 
-interface IupgradeTo {
+interface IProxy {
+    function owner() external returns (address);
+    function value() external returns (uint256);
+    function newValue() external returns (uint256);
+    function initialize(address) external;
+    function setValue(uint256) external;
+    function setNewValue(uint256) external;
     function upgradeTo(address) external;
 }
 
@@ -52,7 +58,7 @@ contract SetUpAndDeployProxy is Script {
 
         vm.stopBroadcast();
 
-        IupgradeTo(address(_proxy)).upgradeTo(address(implV2));
+        IProxy(address(_proxy)).upgradeTo(address(implV2));
 
         return implV2;
     }
