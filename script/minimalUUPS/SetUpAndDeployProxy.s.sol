@@ -6,60 +6,50 @@ import {SimpleUUPSProxy} from "src/minimalUUPS/SimpleUUPSProxy.sol";
 import {ImplV1} from "src/minimalUUPS/ImplV1.sol";
 import {ImplV2} from "src/minimalUUPS/ImplV2.sol";
 
-interface IProxy {
-    function owner() external returns (address);
-    function value() external returns (uint256);
-    function newValue() external returns (uint256);
-    function initialize(address) external;
-    function setValue(uint256) external;
-    function setNewValue(uint256) external;
-    function upgradeTo(address) external;
-}
-
+// 0x5FbDB2315678afecb367f032d93F642f64180aa3
 contract SetUpAndDeployProxy is Script {
-    SimpleUUPSProxy proxy;
-    ImplV1 implV1;
-    ImplV2 implV2;
+    address constant ANVIL_DEFAULT_ADDRESS = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
-    function run() external returns (SimpleUUPSProxy, ImplV1) {
-        implV1 = deployImplV1();
-        proxy = deployAndSetUpProxy(implV1);
+    function run() external returns (address, address) {
+        address implV1 = deployImplV1();
+        address proxy = deployAndSetUpProxy(implV1);
 
         return (proxy, implV1);
     }
 
-    function deployImplV1() public returns (ImplV1) {
+    function deployImplV1() public returns (address) {
         vm.startBroadcast();
 
-        implV1 = new ImplV1();
+        ImplV1 implV1 = new ImplV1();
 
         vm.stopBroadcast();
 
-        return implV1;
+        return address(implV1);
     }
 
-    function deployAndSetUpProxy(ImplV1 _implV1) public returns (SimpleUUPSProxy) {
+    function deployAndSetUpProxy(address _implV1) public returns (address) {
         vm.startBroadcast();
 
-        bytes memory initData = abi.encodeWithSignature("initialize(address)", msg.sender);
+        bytes memory initData = abi.encodeWithSignature("initialize(address)", ANVIL_DEFAULT_ADDRESS);
         // bytes memory initData = abi.encodeWithSignature("initialize(address)", tx.origin);
+        // bytes memory initData = abi.encodeWithSignature("initialize(address)", msg.sender);
 
-        proxy = new SimpleUUPSProxy(address(_implV1), initData);
+        SimpleUUPSProxy proxy = new SimpleUUPSProxy(_implV1, initData);
 
         vm.stopBroadcast();
 
-        return proxy;
+        return address(proxy);
     }
 
-    function upgradeToV2(SimpleUUPSProxy _proxy) external returns (ImplV2) {
+    function upgradeToV2(address _proxy) external returns (address) {
         vm.startBroadcast();
 
-        implV2 = new ImplV2();
+        ImplV2 implV2 = new ImplV2();
 
         vm.stopBroadcast();
 
-        IProxy(address(_proxy)).upgradeTo(address(implV2));
+        ImplV1(_proxy).upgradeTo(address(implV2));
 
-        return implV2;
+        return address(implV2);
     }
 }
